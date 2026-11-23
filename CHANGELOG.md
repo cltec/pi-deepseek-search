@@ -4,7 +4,7 @@ Notable changes to this project. Entries are grouped by release; the latest unre
 
 ## [Unreleased]
 
-No unreleased changes.
+- Added exact-commit automatic release verification, immutable stable-version tagging, and explicit Release dispatch for reviewed version increases merged to main; private and publication-disabled starter defaults remain unchanged.
 
 ## [0.1.0]
 

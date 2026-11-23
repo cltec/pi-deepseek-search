@@ -66,6 +66,8 @@ The same `npm test` run contains tests for helpers used by packaging, e2e, and r
 - Release CLI tests may create a temporary fixture under `os.tmpdir()`, spawn the local Node runtime as a child process, and remove the fixture in `finally`. They must not run `npm pack`, launch Pi, or use the network.
 - Do not duplicate the real package check or the real Pi run in a unit test. Tooling tests are fast feedback for the logic around those commands, not a substitute for them.
 
+`test/auto-release.test.ts` covers canonical version comparison, exact-commit pinned-Pi evidence, immutable tag conflicts, and dispatch retries through injected ports. These tests never contact GitHub or create real tags. Workflow execution and GitHub permissions require hosted verification; local tests do not prove them.
+
 ## Package contents
 
 `npm run check:package` inspects what `npm pack` would include and compares it with an explicit allowlist. The starter allowlist is:

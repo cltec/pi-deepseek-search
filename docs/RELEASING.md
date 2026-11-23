@@ -1,6 +1,6 @@
 # Releasing a Pi extension
 
-This template releases from an explicit, manually pushed stable tag. It does **not** create tags on merge, publish on merge, or auto-merge release pull requests. Publishing is disabled by default with both:
+This template automatically verifies a reviewed stable version increase pushed to `main`, tags the exact verified commit, and explicitly dispatches the tag-based Release workflow. It does **not** auto-merge release pull requests. Unchanged versions skip automation; invalid or decreased versions fail closed. Publishing is disabled by default with both:
 
 - `"private": true` in `package.json`.
 - The `ENABLE_NPM_PUBLISH` repository variable, which must be the exact string `true`.
@@ -103,11 +103,11 @@ npm pack --dry-run --ignore-scripts
 
 `npm run check` runs the offline tests and the package allowlist check. It does not launch Pi. `npm run test:e2e` is the real-Pi smoke test and reads `PI_BIN`; its version must match `scripts/quality.json`, or `PI_VERSION` may set the exact stable version for a temporary experiment. The release workflow installs the exact Pi tarball from `scripts/quality.json` into a temporary prefix outside the checkout and sets `PI_BIN` for you.
 
-Commit `package.json` and `CHANGELOG.md`, open a pull request, review it, and merge it normally. **Merging does not create a tag or publish anything.**
+Commit `package.json` and `CHANGELOG.md`, open a pull request, review it, and merge it normally. **Merging a stable version increase to main starts automatic release verification.** The package remains unpublished unless both publication gates are deliberately enabled.
 
-## Create and push the release tag
+## Recover with a manual release tag
 
-Tag the reviewed commit, not a later moving tip:
+Normally `auto-release.yml` creates the tag after verification. For manual recovery, tag the reviewed commit, not a later moving tip; never move an existing tag:
 
 ```bash
 git tag -a v0.2.0 <reviewed-commit-sha> -m "v0.2.0"
@@ -172,17 +172,15 @@ Check all of these:
 
 **The registry is unavailable or returns an error.** The workflow fails instead of treating an error as an available version. Resolve the outage and rerun.
 
-## Optional future automatic tagging
+## Automatic tagging and recovery
 
-The starter deliberately has no auto-tag workflow. If a fork later adopts automatic tagging, keep these constraints:
+`auto-release.yml` compares package versions across the exact push range on `main`. It rejects bootstrap (all-zero before SHA) and rewritten history. A stable increase must pass the existing repository identity, non-placeholder metadata, changelog, and Pi-pin guards. Complete template setup before attempting a release; initial npm bootstrap remains manual as described above.
 
-- Only tag a reviewed, merged version-and-changelog change, anchored to the exact pushed commit. Never tag a newer moving branch tip.
-- Re-run the same tag identity, Node 22/24, package, and pinned-Pi smoke gates against that exact commit before creating the tag.
-- Create the tag once and never move it. Reject a conflicting existing tag.
-- Explicitly dispatch the `Release` workflow at the created tag; do not assume an automation-created tag event will publish.
-- Keep automatic merging out of the release path. A version bump should still be reviewed, and publication should remain a deliberate maintainer action.
+The workflow runs `npm run check` on Node 22 and 24 and real-Pi smoke using `scripts/quality.json`. It records the exact commit and sanitized schema-1 smoke evidence in `artifacts/auto-release.json` (seven-day artifact retention). Before tagging it requires all four expected smoke checks to pass with clean cleanup and matching actual, expected, and baseline Pi versions, and confirms the commit remains on main.
 
-No automatic merge publication or automatic tag creation is included in this template.
+It creates the tag only if absent, rejects conflicting tags without moving them, rechecks remote identity, then explicitly dispatches `release.yml` at the tag using job-scoped `contents: write` and `actions: write`. Automation-created tag push events are not relied upon. The existing Release workflow still performs all checks, exact-archive verification, publication gates, OIDC, and registry-integrity checks unchanged.
+
+If dispatch fails after tagging, rerun the failed automatic workflow: an existing tag at the same commit is reused and dispatched again. For conflicts or removed main commits, stop and investigate. Never move a tag to repair automation. Manual tag dispatch remains available above. Release one version at a time: concurrency does not cancel active releases but is not a durable queue. Protect main with reviewed pull requests and ensure tag rules permit this workflow's token to create tags; no PAT is needed.
 
 ## References
 

@@ -108,6 +108,10 @@ See [`../SECURITY.md`](../SECURITY.md).
 
 See [`TESTING.md`](TESTING.md) for the test layers and [`TEMPLATE-SETUP.md`](TEMPLATE-SETUP.md) for adapting the template.
 
+## Release automation
+
+`scripts/auto-release.mjs` compares exact push versions and reuses release metadata guards. Injectable completion ports isolate immutable tagging and explicit Release dispatch from dependency-free tests. `.github/workflows/auto-release.yml` verifies Node 22/24 checks and pinned-Pi schema-1 evidence before tagging the verified main commit. Publication and exact-archive safeguards remain in `release.yml`; see [RELEASING.md](RELEASING.md).
+
 ## Decisions
 
 - [ADR 0001: Thin extension and layered tests](adr/0001-thin-extension-and-layered-tests.md)
