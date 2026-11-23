@@ -102,7 +102,7 @@ See [`test/AGENTS.md`](test/AGENTS.md) and [`e2e/AGENTS.md`](e2e/AGENTS.md).
 
 ## Releases
 
-Do not tag or publish from a feature pull request. Version bumps and changelog entries land through a reviewed pull request. A maintainer creates a canonical stable `vX.Y.Z` tag manually after that merge; merging does not create a tag automatically. Publishing is disabled by `"private": true` and by the missing `ENABLE_NPM_PUBLISH` repository variable until a maintainer explicitly configures both. Concrete, non-placeholder repository metadata is required. See [`docs/RELEASING.md`](docs/RELEASING.md).
+Do not tag or publish from a feature pull request. Version bumps and changelog entries land through a reviewed pull request. A stable version increase merged to `main` triggers `auto-release.yml`: it verifies the exact pushed commit on Node 22/24 and pinned Pi, creates an immutable canonical `vX.Y.Z` tag, and explicitly dispatches `release.yml`. Unchanged versions are skipped. Release one version at a time; GitHub concurrency is not a durable queue. Manual tagging remains a recovery path, not a bypass of checks. Publishing is disabled by `"private": true` and by the missing `ENABLE_NPM_PUBLISH` repository variable until a maintainer explicitly configures both. Concrete, non-placeholder repository metadata is required. See [`docs/RELEASING.md`](docs/RELEASING.md).
 
 ## AI-assisted contributions
 

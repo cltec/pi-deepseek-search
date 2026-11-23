@@ -31,7 +31,7 @@ Source: `package.json` and the repository scripts. No lint, typecheck, or build 
 4. Run the smallest relevant check while iterating; run `npm run check` before claiming done.
 5. Run `npm run test:e2e` when changing wiring, the command contract, package contents, or the Pi baseline.
 6. Paste command output as evidence. Never say "tested" or "all green" without it.
-7. For release requests, read [`docs/RELEASING.md`](docs/RELEASING.md). Version and changelog changes need a reviewed pull request; a stable tag requires explicit user authorization. Never tag or publish as part of an unrelated task.
+7. For release requests, read [`docs/RELEASING.md`](docs/RELEASING.md). Version and changelog changes need a reviewed pull request; local/manual tagging requires explicit user authorization; reviewed stable version increases on main use the configured automatic release workflow. Never tag or publish as part of an unrelated task.
 
 ## File map
 
@@ -94,7 +94,7 @@ Source: `package.json` and the repository scripts. No lint, typecheck, or build 
 - There is no build, lint, or typecheck. CI runs the checks on Node 22 and 24 on Linux and installs the pinned Pi version from `scripts/quality.json` into a temporary prefix outside the checkout; that install needs network, while the checks themselves are offline.
 - TypeScript is stripped, not typechecked. Avoid parameter properties, enums, and namespaces.
 - The checkout is loaded with `-e`; the packed archive is extracted and loaded as a local directory through the Pi manifest in `package.json`. E2E does not exercise the `pi install` command or registry installation.
-- Release publishing is disabled by `"private": true` and the `ENABLE_NPM_PUBLISH` repository variable; there is no automatic tag or publish on merge. Releases are manual stable `vX.Y.Z` tags after a reviewed version/changelog pull request. The release workflow runs source smoke, then packs the final `release/package.tgz`, re-runs e2e with `PACKAGE_ARCHIVE` pointed at it, and publishes those checked bytes. E2E and offline checks may create temporary packs; only the final release tarball is preserved and published.
+- Release publishing is disabled by `"private": true` and the `ENABLE_NPM_PUBLISH` repository variable; reviewed stable version increases on main trigger exact-commit verification, immutable stable `vX.Y.Z` tagging, and explicit Release dispatch. Unchanged versions skip automation. No auto-merge is configured; publication gates still apply. The release workflow runs source smoke, then packs the final `release/package.tgz`, re-runs e2e with `PACKAGE_ARCHIVE` pointed at it, and publishes those checked bytes. E2E and offline checks may create temporary packs; only the final release tarball is preserved and published.
 
 ## Scoped AGENTS.md
 

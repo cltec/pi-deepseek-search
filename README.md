@@ -128,7 +128,7 @@ Set `E2E_RESULT_PATH` to change the result file. `scripts/summarize-e2e.mjs` ren
 
 ## Releases
 
-This template is not a publishing project. It ships with `"private": true`, and the release workflow additionally requires the `ENABLE_NPM_PUBLISH` repository variable. Releases are manual and explicitly authorized: a reviewed pull request changes the version and `CHANGELOG.md`, then a maintainer creates a canonical stable `vX.Y.Z` tag. There is no automatic tag on merge. Concrete, non-placeholder repository metadata is required; `private` must also be set to `false` intentionally before publishing.
+This template is not a publishing project. It ships with `"private": true`, and the release workflow additionally requires the `ENABLE_NPM_PUBLISH` repository variable. A reviewed stable version-and-changelog increase merged to `main` triggers automatic verification, immutable `vX.Y.Z` tagging of the exact pushed commit, and explicit dispatch of the existing Release workflow. Unchanged versions are skipped; invalid or decreased versions fail closed. This does not auto-merge pull requests or bypass publication gates. Concrete, non-placeholder repository metadata is required; `private` must also be set to `false` intentionally before publishing.
 
 When enabled, the workflow runs source smoke, packs the final `release/package.tgz`, re-runs e2e with `PACKAGE_ARCHIVE` pointed at that archive, uploads the checked artifact, and publishes those same bytes. E2E and offline steps may create temporary packs; only the final release tarball is preserved and published. Setup, OIDC trusted publishing, and the maintainer procedure live in [docs/RELEASING.md](docs/RELEASING.md).
 
