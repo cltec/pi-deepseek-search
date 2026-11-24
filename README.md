@@ -2,6 +2,14 @@
 
 A [Pi](https://pi.dev) extension providing on-demand web discovery and page retrieval using the [DeepSeek Search & Fetch APIs](https://api-docs.deepseek.com/guides/search.md). It does not replace or select Pi's conversation model: the model and this extension's API access are configured independently.
 
+## What sets this extension apart
+
+- **Bounded output with follow-up reads.** Search returns compact previews; fetch returns Markdown within a display budget. Use `deepseek_web_read_full` to page through cached content without another API request, or export an entire fetched field to a file. Temporary exports are cleaned up at session shutdown, and model-initiated exports to explicit paths require confirmation. Replay after eviction is off by default and can incur another charge if enabled.
+- **Per-model profiles.** Set result counts, output budgets, and whether Search requests page content for the active Pi model. Project overrides require both global opt-in and Pi project trust.
+- **Offline checks and direct developer commands.** `PI_OFFLINE` blocks provider calls even when set to an empty value. `/deepseek-search-status` checks tool registration without a model turn or provider request. Opt-in developer commands can run Search and Fetch without a conversation model.
+
+This is not a drop-in replacement for bxff’s unscoped npm package. Both support standalone DeepSeek Search and Fetch; bxff also offers an optional model-mediated search backend and separate domain arguments. This extension uses query operators for domain filtering. See the [side-by-side comparison](docs/DEEPSEEK-EXTENSION-COMPARISON.md) for the tool contracts and trade-offs.
+
 ## Getting started
 
 Use Node.js 22.18 or newer and Pi 1.5.2 or newer in the 1.x series (the smoke suite pins 1.5.2). Install from the [GitHub repository](https://github.com/cltec/pi-deepseek-search) using a tag listed on [Releases](https://github.com/cltec/pi-deepseek-search/releases). For the planned first release, once `v0.1.0` is available:
@@ -68,6 +76,6 @@ npm run test:e2e    # Real Pi, isolated and offline
 
 Set `PI_BIN` to an absolute path to select the pinned Pi binary. Smoke tests use temporary directories and an allowlisted environment; they make no provider calls. The packed test loads an extracted archive locally, not through `pi install`. No live API or credential verification is implied by these checks. For the regression workflow and a separate, explicitly opt-in live provider probe, see [Testing](docs/TESTING.md#manual-provider-probe).
 
-See [Architecture](docs/ARCHITECTURE.md), [Testing](docs/TESTING.md), [Troubleshooting](docs/TROUBLESHOOTING.md), and [Contributing](CONTRIBUTING.md). For distribution and npm publication plans, see [Releasing](docs/RELEASING.md). For differences from the similarly named npm package, see the [extension comparison](docs/DEEPSEEK-EXTENSION-COMPARISON.md). Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
+See [Architecture](docs/ARCHITECTURE.md), [Testing](docs/TESTING.md), [Troubleshooting](docs/TROUBLESHOOTING.md), and [Contributing](CONTRIBUTING.md). For distribution and npm publication plans, see [Releasing](docs/RELEASING.md). Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
 
 Apache-2.0. See [LICENSE](LICENSE).
