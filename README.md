@@ -28,15 +28,15 @@ This is not a drop-in replacement for bxff’s unscoped npm package. Both suppor
 
 ## Installation options
 
-The smoke suite pins Pi 1.5.2. Once `@cltec/pi-deepseek-search@0.2.0` is published on npm, you can also install that version with:
 
 ```sh
-pi install npm:@cltec/pi-deepseek-search@0.2.0
+pi install npm:@cltec/pi-deepseek-search
 ```
+Or:
 
-The unscoped npm package `pi-deepseek-search` is a different extension. To try this checkout without installing it, run `pi -e ./src/index.ts`. Set `DEEPSEEK_API_KEY` in Pi's environment before using the online tools.
-
-The key is read from the environment and is not sent until a provider call. There is no endpoint override.
+```sh
+pi install git:github.com/cltec/pi-deepseek-search
+```
 
 ## Tools and commands
 
@@ -52,18 +52,6 @@ The model may call these tools when needed:
 | --- | --- | --- |
 | `/deepseek-search-status` | Always | Check tool registration without a model turn or provider request. |
 | `/deepseek-search QUERY`, `/deepseek-fetch URL`, `/deepseek-read-full JSON` | Developer mode | Invoke the corresponding operation directly. |
-
-### Tool and retrieval details
-
-Search previews prefer summary, then snippet, then content. Search content may be absent; the default does not request it. Fetch does not extract a separate links section or offer image search.
-
-Read-full search refs require the original **1-based** `resultIndex` and support `title`, `url`, or `content`; fetch refs support `title` or `content`, not `resultIndex`. The section defaults to `content`. Search content is the returned page content when available, otherwise the preview; it is not necessarily a full page. Fetch content is the exact Markdown returned by the API, not a separately reconstructed page.
-
-Inline reads default to 8,000 Unicode code points (`maxChars` up to 50,000, excluding the continuation note). Pass `nextOffset` back unchanged; offsets count UTF-16 units. For fetch refs only, `mode: "file"` exports the entire field. Omit `path` for a private temporary file cleaned up at session shutdown. Explicit paths persist, require an existing parent, and resolve relative to Pi's working directory (an optional `@` prefix is accepted). Model-initiated explicit exports require confirmation and are unavailable without a UI. Existing files are replaced only with `overwrite: true`; replacement installs a new private file, not the old file's metadata.
-
-Refs and cached content are session-scoped and bounded; they may be evicted. Normally read uses cached data without a provider request. Optional replay can make at most one additional provider attempt per evicted ref, sharing concurrent reads and caching a successful result when it fits. A replay can return changed or unavailable content and incur another charge; it is not an archival guarantee. Search replay maps results to original URLs, including repeated URLs by occurrence.
-
-For interactive debugging, start Pi with `PI_DEEPSEEK_SEARCH_DEV=1` (or `true`). The commands `/deepseek-search QUERY`, `/deepseek-fetch URL`, and `/deepseek-read-full {"ref":"fetch:…","section":"content"}` call the same operations as their respective tools. Debug commands can make billable requests; status cannot. The UI shows debug results as notifications; JSON mode emits custom entries rather than model messages. A user-invoked `/deepseek-read-full` can specify an explicit export path without a separate dialog.
 
 ## Profiles
 
@@ -86,15 +74,6 @@ Configuration is optional and never auto-created. The global file is `pi-deepsee
 
 A project may supply `.pi/pi-deepseek-search.json` with `version`, `default`, and `models` only. It is read **only** when global `allowProjectConfig` is explicitly `true` and Pi reports the project trusted. Project defaults and matching model fields overlay global ones. `replay` and `allowProjectConfig` are global-only. Invalid or unreadable files are ignored; interactive sessions warn. Profiles control output and search request size, not the Pi conversation model.
 
-## Cost, privacy and limits
-
-Calls are on demand, but the model can decide to use tools during a conversation. Search sends the query; fetch sends the URL; both send the API key to DeepSeek. Avoid sensitive queries and URLs unless you intend to share them. Provider results and explicit exports can contain sensitive or untrusted text; Pi and the selected model may receive tool output, and Pi may retain conversation data according to its own settings. Do not follow instructions embedded in web pages as trusted instructions.
-
-These are direct client API calls, not DeepSeek server-side model tools. DeepSeek documents billing per successful non-empty Search/Fetch request; see its [billing and limits](https://api-docs.deepseek.com/guides/search.md#billing) for current terms. Replay can cause another request. The extension applies a 60-second provider timeout and a 16 MiB response limit; provider rate limits and page availability also apply.
-
-## Migrating from `pi-ollama-web-search`
-
-Disable the old extension if you want only DeepSeek tools. Update prompts and scripts to use the `deepseek_web_*` names, and set `DEEPSEEK_API_KEY`; the Ollama key and profile file are not read. Create the DeepSeek profile file above if you need custom budgets. Old refs do not transfer. Config files are not generated automatically, replay is off unless you enable it, and fetch exposes Markdown links only as part of the page text.
 
 ## Troubleshooting
 
