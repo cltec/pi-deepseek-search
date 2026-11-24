@@ -1,16 +1,10 @@
 # Changelog
 
-Notable changes to this project. Entries are grouped by release; the latest unreleased work is listed first.
-
-## [Unreleased]
-
-- Added exact-commit automatic release verification, immutable stable-version tagging, and explicit Release dispatch for reviewed version increases merged to main; private and publication-disabled starter defaults remain unchanged.
+Notable changes to Pi DeepSeek Search are recorded here.
 
 ## [0.1.0]
 
-- Added the initial Pi extension template.
-- Added the `/hello [name]` command, which replies `Hello, NAME!` and falls back to `Hello, world!` for a blank argument after trimming.
-- Split Pi wiring in `src/index.ts` from the pure formatter in `src/greeting.ts`; UI-capable modes show an info notification and headless modes send a custom `template-greeting` message without triggering a model turn.
-- Added offline unit, wiring, and tooling tests with `node:test`, a package-content allowlist check, and real-Pi end-to-end checks for checkout RPC, headless JSON, and the packed archive.
-- Added template setup, architecture, testing, troubleshooting, security, and contribution documentation.
-- Disabled publishing by default with `"private": true` and the `ENABLE_NPM_PUBLISH` repository-variable gate; releases require a reviewed version/changelog pull request and a manually authorized stable tag.
+- First GitHub distribution of Pi DeepSeek Search. Added DeepSeek web search, Markdown fetch, and session-scoped paging and fetch exports, with optional developer commands.
+- Added optional model profiles, trusted opt-in project configuration, bounded retrieval and opt-in replay, and `PI_OFFLINE` provider suppression. Loading makes no provider request and creates no configuration.
+- Added `/deepseek-search-status` to verify tool registration without credentials, network calls, or a model turn.
+- Kept the template's offline checks, package allowlist, isolated real-Pi smoke tests, and gated release workflows. Added a project verification skill and a separate, opt-in provider probe. Offline checks do not verify live credentials or API behavior.

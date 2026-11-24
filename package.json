@@ -1,11 +1,11 @@
 {
-  "name": "pi-extension-template",
+  "name": "pi-deepseek-search",
   "version": "0.1.0",
   "private": true,
-  "description": "A minimal Pi extension example with documentation, layered tests, and opt-in releases.",
+  "description": "DeepSeek web search, Markdown fetch, and content retrieval for Pi.",
   "type": "module",
   "main": "./src/index.ts",
-  "keywords": ["pi-package", "pi", "extension"],
+  "keywords": ["pi-package", "pi", "deepseek", "web-search"],
   "pi": { "extensions": ["./src/index.ts"] },
   "files": [
     "src",
@@ -24,10 +24,10 @@
     "check": "npm test && npm run check:package",
     "test:e2e": "node e2e/smoke.ts"
   },
-  "peerDependencies": { "@earendil-works/pi-coding-agent": "*" },
+  "peerDependencies": { "@earendil-works/pi-coding-agent": ">=1.5.2 <2" },
   "engines": { "node": ">=22.18.0" },
   "license": "Apache-2.0",
-  "repository": { "type": "git", "url": "git+https://github.com/OWNER/REPOSITORY.git" },
-  "bugs": { "url": "https://github.com/OWNER/REPOSITORY/issues" },
-  "homepage": "https://github.com/OWNER/REPOSITORY#readme"
+  "repository": { "type": "git", "url": "git+https://github.com/cltec/pi-deepseek-search.git" },
+  "bugs": { "url": "https://github.com/cltec/pi-deepseek-search/issues" },
+  "homepage": "https://github.com/cltec/pi-deepseek-search#readme"
 }
