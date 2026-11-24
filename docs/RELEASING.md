@@ -1,9 +1,9 @@
 # Releasing a Pi extension
 
-This repository automatically verifies a reviewed stable version increase pushed to `main`, tags the exact verified commit, and explicitly dispatches the tag-based Release workflow. It does **not** auto-merge release pull requests. Unchanged versions skip automation; invalid or decreased versions fail closed. Publishing is disabled by default with both:
+This repository automatically verifies a reviewed stable version increase pushed to `main`, tags the exact verified commit, and explicitly dispatches the tag-based Release workflow. It does **not** auto-merge release pull requests. Unchanged versions skip automation; invalid or decreased versions fail closed. Automated npm publishing requires both gates to be enabled:
 
-- `"private": true` in `package.json`.
-- The `ENABLE_NPM_PUBLISH` repository variable, which must be the exact string `true`.
+- `"private": false` in `package.json`.
+- The `ENABLE_NPM_PUBLISH` repository variable set to the exact string `true`.
 
 The release workflow validates the tag and package identity before any publication work. If the variable is absent or not exactly `true`, the validation, Node 22/24 checks, and Pi smoke still run, but the package, publish, and GitHub Release jobs are skipped. If the variable is `true` while the package is still private, the validation job fails closed before packing.
 
@@ -20,27 +20,24 @@ Release validation requires the repository in `package.json` to match `github.re
 
 ### 1. Make the package publishable
 
-npm publishing remains disabled for the GitHub release. Before the first npm publication:
+The GitHub-only `v0.1.0` tag stays unchanged. The npm bootstrap PR prepares `@cltec/pi-deepseek-search@0.2.0` with `"private": false` and a matching changelog entry. The unscoped name `pi-deepseek-search` belongs to a different project. The publisher must have permission to publish under the `@cltec` npm scope.
 
-- The unscoped name `pi-deepseek-search` belongs to another publisher. Confirm control of the npm scope `@cltec` and use `@cltec/pi-deepseek-search` in a separate reviewed npm bootstrap PR. Keep `repository` set to the canonical `cltec/pi-deepseek-search` GitHub URL.
-- Change `"private": true` to `"private": false` only when you are ready to publish.
-- Keep the Pi baseline in `scripts/quality.json`; the repository pins `1.5.2`.
-- Choose the npm bootstrap version and add a matching changelog heading through the bootstrap PR. Use a new version for changed release metadata if you also want a Git tag for that revision. A version increase on `main` can still trigger automatic tagging while the npm publication gate is off.
+Review and merge the bootstrap PR into `main` with `ENABLE_NPM_PUBLISH` unset. The stable version increase triggers the automatic workflow to verify the merged commit, create `v0.2.0`, and dispatch Release. Wait for tag validation, the Node 22/24 checks, and Pi smoke to succeed. With the gate unset, the package, publish, and GitHub Release jobs are intentionally skipped.
 
 The package allowlist is checked by `npm run check`. Do not widen it to make development files publishable.
 
 ### 2. Bootstrap the npm package manually
 
-Keep `ENABLE_NPM_PUBLISH` unset during bootstrap. If the scoped package does not exist yet, publish the reviewed npm bootstrap revision manually from a clean checkout with your npm account and two-factor authentication. This is a one-time local bootstrap, not a CI credential. Do not reuse or move the GitHub `v0.1.0` tag to point at changed package metadata.
-
-Before publishing, run the package checks and inspect the exact pack contents:
+Keep `ENABLE_NPM_PUBLISH` unset during bootstrap. From a clean checkout, fetch `v0.2.0` and check out the verified tag (not the GitHub-only `v0.1.0` tag):
 
 ```bash
+git fetch origin tag v0.2.0
+git switch --detach v0.2.0
 npm run check
 npm pack --dry-run --ignore-scripts
 ```
 
-Then log in and publish:
+Before continuing, confirm the dry run shows `@cltec/pi-deepseek-search@0.2.0` and the approved files only. Use your npm account with two-factor authentication and permission to publish under `@cltec`; this is a one-time local bootstrap, not a CI credential:
 
 ```bash
 npm login --registry=https://registry.npmjs.org/
@@ -48,7 +45,7 @@ npm whoami --registry=https://registry.npmjs.org/
 npm publish --registry=https://registry.npmjs.org/ --ignore-scripts --access public
 ```
 
-Complete npm's browser and 2FA prompts. Never reuse an old package name or publish from an uncommitted checkout. Once the package exists, configure its trusted publisher.
+Complete npm's browser and 2FA prompts. Never publish from an uncommitted checkout. Verify the public version with `npm view @cltec/pi-deepseek-search@0.2.0 version --registry=https://registry.npmjs.org/`. Then verify `pi install npm:@cltec/pi-deepseek-search@0.2.0` in a fresh Pi profile without provider credentials and run `/deepseek-search-status`. Once the package exists, configure its trusted publisher.
 
 ### 3. Configure npm trusted publishing
 
@@ -85,11 +82,11 @@ Do not wrap the publishing command in a reusable workflow. Configure npm for the
 Choose the next stable version deliberately. Release pull requests are reviewed like any other change:
 
 ```bash
-git switch -c chore/release-v0.2.0
-npm version 0.2.0 --no-git-tag-version
+git switch -c chore/release-v0.3.0
+npm version 0.3.0 --no-git-tag-version
 ```
 
-Update `CHANGELOG.md` with an exact `0.2.0` heading, then verify:
+Update `CHANGELOG.md` with an exact `0.3.0` heading, then verify:
 
 ```bash
 npm run check
@@ -106,16 +103,16 @@ Commit `package.json` and `CHANGELOG.md`, open a pull request, review it, and me
 Normally `auto-release.yml` creates the tag after verification. For manual recovery, tag the reviewed commit, not a later moving tip; never move an existing tag:
 
 ```bash
-git tag -a v0.2.0 <reviewed-commit-sha> -m "v0.2.0"
-git push origin v0.2.0
+git tag -a v0.3.0 <reviewed-commit-sha> -m "v0.3.0"
+git push origin v0.3.0
 ```
 
-The tag must be a canonical stable `vX.Y.Z` tag. Leading zeroes, prereleases, build metadata, branches, and pull-request refs are rejected. The tag version must equal `package.json.version` exactly (`v0.2.0` ↔ `0.2.0`).
+The tag must be a canonical stable `vX.Y.Z` tag. Leading zeroes, prereleases, build metadata, branches, and pull-request refs are rejected. The tag version must equal `package.json.version` exactly (`v0.3.0` ↔ `0.3.0`).
 
 Alternatively, after the tag exists, dispatch the release workflow at that tag:
 
 ```bash
-gh workflow run release.yml --ref v0.2.0
+gh workflow run release.yml --ref v0.3.0
 ```
 
 In the GitHub UI, choose **Actions → Release → Run workflow** and select the tag, not `main` or another branch. The workflow checks `github.ref_type == "tag"` and refuses a branch dispatch.
@@ -144,8 +141,8 @@ The publish job has `id-token: write`; the GitHub Release job has `contents: wri
 Check all of these:
 
 - **Actions → Release** has successful preflight, Node 22/24 checks, Pi smoke, package, publish, and GitHub Release jobs.
-- npm lists the expected version, for example `npm view @cltec/pi-deepseek-search@0.2.0 version`.
-- The npm archive integrity matches the checked release record, for example `npm view @cltec/pi-deepseek-search@0.2.0 dist.integrity`.
+- npm lists the expected version, for example `npm view @cltec/pi-deepseek-search@0.3.0 version`.
+- The npm archive integrity matches the checked release record, for example `npm view @cltec/pi-deepseek-search@0.3.0 dist.integrity`.
 - GitHub Releases has the matching tag and notes.
 
 ## Recover from a failure
