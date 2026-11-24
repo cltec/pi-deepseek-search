@@ -2,6 +2,10 @@
 
 Notable changes to Pi DeepSeek Search are recorded here.
 
+## [0.2.0]
+
+- Prepare the first npm distribution as `@cltec/pi-deepseek-search`. The unscoped npm package is a different extension. GitHub installation remains supported, and tool behavior is unchanged.
+
 ## [0.1.0]
 
 - First GitHub distribution of Pi DeepSeek Search. Added DeepSeek web search, Markdown fetch, and session-scoped paging and fetch exports, with optional developer commands.

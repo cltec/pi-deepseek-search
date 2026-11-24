@@ -12,13 +12,19 @@ This is not a drop-in replacement for bxff’s unscoped npm package. Both suppor
 
 ## Getting started
 
-Use Node.js 22.18 or newer and Pi 1.5.2 or newer in the 1.x series (the smoke suite pins 1.5.2). Install from the [GitHub repository](https://github.com/cltec/pi-deepseek-search) using a tag listed on [Releases](https://github.com/cltec/pi-deepseek-search/releases). For the planned first release, once `v0.1.0` is available:
+Use Node.js 22.18 or newer and Pi 1.5.2 or newer in the 1.x series (the smoke suite pins 1.5.2). Install from GitHub using a tag listed on [Releases](https://github.com/cltec/pi-deepseek-search/releases), for example:
 
 ```sh
 pi install git:github.com/cltec/pi-deepseek-search@v0.1.0
 ```
 
-The unscoped public npm package `pi-deepseek-search` is a different extension. To try this checkout before release, run `pi -e ./src/index.ts` instead of installing it. Set `DEEPSEEK_API_KEY` in Pi's environment before using the online tools.
+Once `@cltec/pi-deepseek-search@0.2.0` is published on npm, you can also install that version with:
+
+```sh
+pi install npm:@cltec/pi-deepseek-search@0.2.0
+```
+
+The unscoped npm package `pi-deepseek-search` is a different extension. To try this checkout without installing it, run `pi -e ./src/index.ts`. Set `DEEPSEEK_API_KEY` in Pi's environment before using the online tools.
 
 Never commit the key. `/deepseek-search-status` checks registered tools without a model turn or provider request; it does not verify credentials or connectivity. Loading the extension makes no provider request and does not create configuration. It reads the key from the environment; it does not send it until a provider call. If `PI_OFFLINE` is present in the environment, even with an empty value, provider access is disabled. There is no endpoint override.
 

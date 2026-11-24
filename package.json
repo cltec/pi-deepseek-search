@@ -1,7 +1,7 @@
 {
-  "name": "pi-deepseek-search",
-  "version": "0.1.0",
-  "private": true,
+  "name": "@cltec/pi-deepseek-search",
+  "version": "0.2.0",
+  "private": false,
   "description": "DeepSeek web search, Markdown fetch, and content retrieval for Pi.",
   "type": "module",
   "main": "./src/index.ts",
