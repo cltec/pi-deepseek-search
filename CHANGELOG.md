@@ -2,7 +2,7 @@
 
 Notable changes to Pi DeepSeek Search are recorded here.
 
-## Unreleased
+## [0.2.1]
 
 - Improve README onboarding, tool and command navigation, troubleshooting, and CI and license badges.
 
