@@ -1,16 +1,14 @@
 # Changelog
 
-Notable changes to this project. Entries are grouped by release; the latest unreleased work is listed first.
+Notable changes to Pi DeepSeek Search are recorded here.
 
 ## [Unreleased]
 
-- Added exact-commit automatic release verification, immutable stable-version tagging, and explicit Release dispatch for reviewed version increases merged to main; private and publication-disabled starter defaults remain unchanged.
+- Added DeepSeek web search, Markdown fetch, and session-scoped read, paging, and fetch export tools, with optional developer commands.
+- Added optional model profiles, trusted opt-in project configuration, bounded retrieval cache and opt-in replay, and `PI_OFFLINE` provider suppression. Loading does not make a provider request or create configuration.
+- Documented direct API billing and privacy considerations; offline checks do not verify live credentials or API behavior.
 
 ## [0.1.0]
 
-- Added the initial Pi extension template.
-- Added the `/hello [name]` command, which replies `Hello, NAME!` and falls back to `Hello, world!` for a blank argument after trimming.
-- Split Pi wiring in `src/index.ts` from the pure formatter in `src/greeting.ts`; UI-capable modes show an info notification and headless modes send a custom `template-greeting` message without triggering a model turn.
-- Added offline unit, wiring, and tooling tests with `node:test`, a package-content allowlist check, and real-Pi end-to-end checks for checkout RPC, headless JSON, and the packed archive.
-- Added template setup, architecture, testing, troubleshooting, security, and contribution documentation.
-- Disabled publishing by default with `"private": true` and the `ENABLE_NPM_PUBLISH` repository-variable gate; releases require a reviewed version/changelog pull request and a manually authorized stable tag.
+- Initialized the package from `cltec/pi-extension-template`, retaining offline checks, the package allowlist, isolated real-Pi smoke tests, and gated releases.
+- Added `/deepseek-search-status` to verify loading without credentials, network calls, or a model turn. The DeepSeek integration is not yet implemented.

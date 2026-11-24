@@ -15,7 +15,7 @@ Source: `package.json` and the repository scripts. No lint, typecheck, or build 
 | Package allowlist check | `npm run check:package` | Asserts `npm pack` contents |
 | Full local check | `npm run check` | `npm test && npm run check:package` |
 | End-to-end (real Pi) | `npm run test:e2e` | Separate; checkout RPC, headless JSON, and packed archive |
-| Single test file | `node --test test/greeting.test.ts` | Replace with the file you are changing |
+| Single test file | `node --test test/extension.test.ts` | Replace with the file you are changing |
 
 - `npm test` and `npm run check:package` need no dependency installation.
 - Node.js 22.18+ is required. CI runs the same checks on Node 22 and 24 on Linux; local runs in this repository use Node 22.
@@ -41,17 +41,15 @@ Source: `package.json` and the repository scripts. No lint, typecheck, or build 
 | `test/` | Offline `node:test` suites: [`test/AGENTS.md`](test/AGENTS.md). |
 | `e2e/` | Real-Pi smoke harness (RPC and headless JSON) and its isolation rules: [`e2e/AGENTS.md`](e2e/AGENTS.md). |
 | `scripts/` | Package allowlist, release checks, e2e summary, and isolation helpers. `scripts/quality.json` pins the Pi baseline. |
-| `docs/` | Setup, architecture, testing, troubleshooting, ADRs, and release guide. |
+| `docs/` | Architecture, testing, troubleshooting, ADRs, and release guide. |
 | `README.md`, `CHANGELOG.md`, `SECURITY.md`, `CONTRIBUTING.md`, `.github/` | User and contributor documentation, CI, and the pull request template. |
 | `package.json` | Package metadata, scripts, Pi manifest, and package allowlist. |
 
 ## Invariants
 
-- The example makes no network requests, reads no configuration, and creates no persistent resources. Adding any of these is a design change, not a casual edit.
-- `src/index.ts` is thin Pi wiring. Pure logic lives elsewhere and is tested directly.
-- The starter imports host types with `import type`. A runtime import from a Pi host peer is legitimate because Pi supplies it; the type-only starter import keeps unit tests fake-friendly. Host packages stay peer dependencies, and adding any npm dependency is a reviewed decision.
-- The example's command contract is `/hello [name]` -> `Hello, NAME!`, with a trimmed argument and `world` as the fallback. A fork replaces this contract; it is not a permanent shape for every extension.
-- When `ctx.hasUI` is true, use `ctx.ui.notify(text, "info")`. Otherwise use `pi.sendMessage({ customType: "template-greeting", content: text, display: true }, { triggerTurn: false })`.
+- Provider requests are on demand, go only to DeepSeek's fixed Search/Fetch endpoints, and are disabled by `PI_OFFLINE`. Replay requires global opt-in. Loading makes no provider requests and writes no configuration.
+- Keep `src/index.ts` as thin Pi wiring. Put provider I/O and independently testable logic in separate modules.
+- Use `import type` for host types. Runtime imports from Pi host peers are legitimate because Pi supplies them; host packages stay peer dependencies.
 - Tests are offline and deterministic. `npm test` may use temporary filesystem fixtures and isolated local Node child processes for the release CLI; it must not launch Pi, run `npm pack`, or use the network. E2E is the only layer that launches Pi.
 - E2E uses a temporary home, config directory, and working directory; passes an explicit environment allowlist; makes no provider calls; bounds shutdown; cleans up; and writes only a sanitized schema-1 result (default `artifacts/e2e-result.json`, or `E2E_RESULT_PATH`).
 - The packed e2e scenario inspects and extracts the tarball with a system GNU-compatible `tar` (regular files and directories only), then loads the extracted directory through a temporary Pi `settings.json` `packages` entry. It does not run `pi install` or contact a registry; those paths are a known coverage limit. `PACKAGE_ARCHIVE` may point at an exact checked release tarball instead of repacking.
@@ -90,7 +88,7 @@ Source: `package.json` and the repository scripts. No lint, typecheck, or build 
 
 ## Codebase state
 
-- The package is a template example with one command and no runtime dependencies. The example contract can be replaced when forking; do not assume every extension keeps `/hello`.
+- Registers DeepSeek search, fetch, read-full, and offline status. See [`src/AGENTS.md`](src/AGENTS.md) for wiring constraints and [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for provider, profile, and retrieval behavior.
 - There is no build, lint, or typecheck. CI runs the checks on Node 22 and 24 on Linux and installs the pinned Pi version from `scripts/quality.json` into a temporary prefix outside the checkout; that install needs network, while the checks themselves are offline.
 - TypeScript is stripped, not typechecked. Avoid parameter properties, enums, and namespaces.
 - The checkout is loaded with `-e`; the packed archive is extracted and loaded as a local directory through the Pi manifest in `package.json`. E2E does not exercise the `pi install` command or registry installation.

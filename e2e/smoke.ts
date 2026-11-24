@@ -25,6 +25,8 @@ import {
 
 const REPO_ROOT = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const CHECKOUT_ENTRY = join(REPO_ROOT, "src", "index.ts");
+const STATUS_COMMAND = "deepseek-search-status";
+const STATUS_TEXT = "DeepSeek Search loaded. Tools: deepseek_web_search, deepseek_web_fetch, deepseek_web_read_full.";
 
 function commonRpcArguments() {
   return [
@@ -32,7 +34,7 @@ function commonRpcArguments() {
     "rpc",
     "--no-session",
     "--no-approve",
-    "--no-tools",
+    "--no-builtin-tools",
     "--no-skills",
     "--no-prompt-templates",
     "--no-context-files",
@@ -55,7 +57,7 @@ function headlessArguments() {
     "-p",
     "--no-session",
     "--no-approve",
-    "--no-tools",
+    "--no-builtin-tools",
     "--no-skills",
     "--no-prompt-templates",
     "--no-context-files",
@@ -63,7 +65,7 @@ function headlessArguments() {
     "--no-extensions",
     "-e",
     CHECKOUT_ENTRY,
-    "/hello Ada",
+    `/${STATUS_COMMAND}`,
   ];
 }
 
@@ -85,9 +87,9 @@ function safeCommandNames(commands) {
   return names;
 }
 
-async function expectGreeting(session, message, expected) {
+async function expectStatusNotification(session) {
   const before = session.notificationCount();
-  const response = await session.request({ type: "prompt", message }, 10_000);
+  const response = await session.request({ type: "prompt", message: `/${STATUS_COMMAND}` }, 10_000);
   ensure(isRecord(response) && response.disposition === "handled", "unexpected-agent-run");
 
   const notifications = await session.waitForNotifications(before + 1, 5_000);
@@ -95,7 +97,7 @@ async function expectGreeting(session, message, expected) {
   ensure(additions.length === 1, "notification-mismatch");
   const notification = additions[0];
   ensure(notification.method === "notify", "notification-mismatch");
-  ensure(notification.message === expected, "notification-mismatch");
+  ensure(notification.message === STATUS_TEXT, "notification-mismatch");
   ensure((notification.notifyType ?? "info") === "info", "notification-mismatch");
 }
 
@@ -114,18 +116,16 @@ async function expectIdleWithoutMessages(session) {
 
 async function exerciseRpcScenario(session, expectedOrigin) {
   const commands = parseCommands(await session.request({ type: "get_commands" }, 30_000));
-  ensure(commands.some((command) => command.name === "hello"), "command-missing");
+  const status = commands.find((command) => command.name === STATUS_COMMAND);
+  ensure(status, "command-missing");
+  ensure(status.source === "extension", "command-source-mismatch");
+  ensure(isRecord(status.sourceInfo), "command-source-mismatch");
+  ensure(status.sourceInfo.origin === expectedOrigin, "command-source-mismatch");
 
-  const hello = commands.find((command) => command.name === "hello");
-  ensure(hello.source === "extension", "command-source-mismatch");
-  ensure(isRecord(hello.sourceInfo), "command-source-mismatch");
-  ensure(hello.sourceInfo.origin === expectedOrigin, "command-source-mismatch");
-
-  await expectGreeting(session, "/hello Ada", "Hello, Ada!");
-  await expectGreeting(session, "/hello    ", "Hello, world!");
+  await expectStatusNotification(session);
   await expectIdleWithoutMessages(session);
 
-  ensure(session.notificationCount() === 2, "notification-mismatch");
+  ensure(session.notificationCount() === 1, "notification-mismatch");
   session.assertHealthy();
   return safeCommandNames(commands);
 }
@@ -302,10 +302,10 @@ async function headlessScenario(context) {
 
     const messages = session.getCustomMessages();
     ensure(messages.length === 1, "message-mismatch");
-    ensure(messages[0].customType === "template-greeting", "message-mismatch");
-    ensure(messages[0].content === "Hello, Ada!", "message-mismatch");
+    ensure(messages[0].customType === STATUS_COMMAND, "message-mismatch");
+    ensure(messages[0].content === STATUS_TEXT, "message-mismatch");
     ensure(messages[0].display === true, "message-mismatch");
-    commands = ["hello"];
+    commands = [STATUS_COMMAND];
   } catch (error) {
     failure = toHarnessError(error);
   } finally {

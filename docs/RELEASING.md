@@ -1,25 +1,23 @@
 # Releasing a Pi extension
 
-This template automatically verifies a reviewed stable version increase pushed to `main`, tags the exact verified commit, and explicitly dispatches the tag-based Release workflow. It does **not** auto-merge release pull requests. Unchanged versions skip automation; invalid or decreased versions fail closed. Publishing is disabled by default with both:
+This repository automatically verifies a reviewed stable version increase pushed to `main`, tags the exact verified commit, and explicitly dispatches the tag-based Release workflow. It does **not** auto-merge release pull requests. Unchanged versions skip automation; invalid or decreased versions fail closed. Publishing is disabled by default with both:
 
 - `"private": true` in `package.json`.
 - The `ENABLE_NPM_PUBLISH` repository variable, which must be the exact string `true`.
 
 The release workflow validates the tag and package identity before any publication work. If the variable is absent or not exactly `true`, the validation, Node 22/24 checks, and Pi smoke still run, but the package, publish, and GitHub Release jobs are skipped. If the variable is `true` while the package is still private, the validation job fails closed before packing.
 
-The repository in `package.json` is also a guard. Until `OWNER/REPOSITORY` is replaced and it matches `github.repository`, release validation fails.
+Release validation requires the repository in `package.json` to match `github.repository`.
 
 ## One-time setup
 
 ### 1. Make the package publishable
 
-Complete the template setup first. At minimum:
+Publishing is still disabled. Before the first release:
 
-- Replace `OWNER` and `REPOSITORY` in `package.json`, documentation, and workflow references.
-- Set the real package `name`, `version`, `description`, and repository metadata.
-- Keep `repository` as the canonical GitHub URL for the repository that runs this workflow.
+- Confirm the public package name and keep `repository` as the canonical URL of the GitHub repository that runs this workflow.
 - Change `"private": true` to `"private": false` only when you are ready to publish.
-- Keep the Pi baseline in `scripts/quality.json`; this template pins `1.5.2`.
+- Keep the Pi baseline in `scripts/quality.json`; the repository pins `1.5.2`.
 - Add a changelog heading for the exact version, for example `## [0.2.0]`. The release script rejects a missing or mismatched heading.
 
 The package allowlist is checked by `npm run check`. Do not widen it to make development files publishable.
@@ -36,7 +34,7 @@ This is a variable, not a secret. Anything other than the exact lowercase value 
 
 ### 3. Bootstrap the npm package, if needed
 
-If the npm package does not exist yet, publish the reviewed `0.1.0` package manually from a clean checkout with your npm account and two-factor authentication. This is a one-time local bootstrap, not a CI credential.
+If the npm package does not exist yet, publish the reviewed first-release package manually from a clean checkout with your npm account and two-factor authentication. This is a one-time local bootstrap, not a CI credential.
 
 Before publishing, run the package checks and inspect the exact pack contents:
 
@@ -148,8 +146,8 @@ The publish job has `id-token: write`; the GitHub Release job has `contents: wri
 Check all of these:
 
 - **Actions → Release** has successful preflight, Node 22/24 checks, Pi smoke, package, publish, and GitHub Release jobs.
-- npm lists the expected version, for example `npm view pi-extension-template@0.2.0 version`.
-- The npm archive integrity matches the checked release record, for example `npm view pi-extension-template@0.2.0 dist.integrity`.
+- npm lists the expected version, for example `npm view pi-deepseek-search@0.2.0 version`.
+- The npm archive integrity matches the checked release record, for example `npm view pi-deepseek-search@0.2.0 dist.integrity`.
 - GitHub Releases has the matching tag and notes.
 
 ## Recover from a failure
@@ -174,7 +172,7 @@ Check all of these:
 
 ## Automatic tagging and recovery
 
-`auto-release.yml` compares package versions across the exact push range on `main`. It rejects bootstrap (all-zero before SHA) and rewritten history. A stable increase must pass the existing repository identity, non-placeholder metadata, changelog, and Pi-pin guards. Complete template setup before attempting a release; initial npm bootstrap remains manual as described above.
+`auto-release.yml` compares package versions across the exact push range on `main`. It rejects bootstrap (all-zero before SHA) and rewritten history. A stable increase must pass the existing repository identity, non-placeholder metadata, changelog, and Pi-pin guards. Initial npm bootstrap remains manual as described above.
 
 The workflow runs `npm run check` on Node 22 and 24 and real-Pi smoke using `scripts/quality.json`. It records the exact commit and sanitized schema-1 smoke evidence in `artifacts/auto-release.json` (seven-day artifact retention). Before tagging it requires all four expected smoke checks to pass with clean cleanup and matching actual, expected, and baseline Pi versions, and confirms the commit remains on main.
 

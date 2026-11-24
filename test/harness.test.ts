@@ -24,7 +24,7 @@ const manifest = {
   pi: { extensions: ["./src/index.ts"] },
 };
 const rootFiles = ["package.json", "README.md", "LICENSE", "CHANGELOG.md"];
-const validEntries = [...rootFiles, "src/greeting.ts", "src/index.ts"];
+const validEntries = [...rootFiles, "src/example-helper.ts", "src/index.ts"];
 
 function isCategory(category) {
   return (error) => error instanceof HarnessError && error.category === category;
@@ -201,11 +201,11 @@ test("RPC framing records notifications and fails closed on malformed records", 
     type: "extension_ui_request",
     id: "ui-1",
     method: "notify",
-    message: "Hello, Ada!",
+    message: "Status ready.",
   }));
   assert.equal(session.notificationCount(), 1);
   assert.deepEqual(session.notifications, [
-    { method: "notify", message: "Hello, Ada!", notifyType: "info" },
+    { method: "notify", message: "Status ready.", notifyType: "info" },
   ]);
 
   session.handleLine("{not json");
@@ -269,14 +269,14 @@ test("JSON framing records custom messages and rejects agent messages", () => {
     type: "message_end",
     message: {
       role: "custom",
-      customType: "template-greeting",
-      content: "Hello, Ada!",
+      customType: "smoke-status",
+      content: "Status ready.",
       display: true,
     },
   }));
   assert.deepEqual(session.getCustomMessages(), [{
-    customType: "template-greeting",
-    content: "Hello, Ada!",
+    customType: "smoke-status",
+    content: "Status ready.",
     display: true,
   }]);
 

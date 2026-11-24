@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for improving this Pi extension template. The example is intentionally small; keep changes small too.
+This repository provides on-demand DeepSeek Search and Fetch tools for Pi. Agree on consequential changes to the tool contract, configuration, or network behavior before implementation.
 
 ## Before you start
 
@@ -14,15 +14,14 @@ Thanks for improving this Pi extension template. The example is intentionally sm
 - Node.js 22.18 or newer for development and the tests. CI runs Node 22 and 24 on Linux with the same commands; local verification here uses Node 22.
 - Pi 1.5.2 for the e2e checks, matching `scripts/quality.json`. The e2e runner uses `pi` from `PATH` by default; set `PI_BIN` to an absolute path to select another binary. Its version must equal the baseline unless `PI_VERSION` sets the exact stable version. Both variables are for temporary compatibility experiments; update `scripts/quality.json` to adopt a new baseline.
 - Linux is the tested platform. Other operating systems are unverified.
-- No dependency installation is required for the starter. Pi loads the TypeScript itself. CI installs the pinned Pi version first, which requires network; the checks themselves are offline.
+- No dependency installation is required for the offline checks. Pi loads the TypeScript itself. CI installs the pinned Pi version first, which requires network; the checks themselves are offline.
 
 There is no lint, typecheck, or build step. Node strips TypeScript types; it does not verify them.
 
 ## Setup
 
 ```bash
-git clone https://github.com/OWNER/REPOSITORY.git
-cd REPOSITORY
+cd pi-deepseek-search
 npm test
 ```
 
@@ -32,14 +31,14 @@ To try the checkout in Pi:
 pi -e ./src/index.ts
 ```
 
-Then run `/hello` and `/hello Ada`.
+Then run `/deepseek-search-status`.
 
 ## Commands
 
 | Task | Command |
 | --- | --- |
 | Unit, wiring, and tooling tests | `npm test` |
-| Single test file | `node --test test/greeting.test.ts` |
+| Single test file | `node --test test/extension.test.ts` |
 | Package contents | `npm run check:package` |
 | Full local check | `npm run check` |
 | End-to-end tests | `npm run test:e2e` |
@@ -54,7 +53,7 @@ Run the smallest relevant check while iterating, then `npm run check` before ope
 4. Run `npm run check` and paste the output in the pull request.
 5. If wiring or packaging changed, run `npm run test:e2e` and paste its summary.
 6. Update `README.md`, the relevant `docs/` page, and `CHANGELOG.md` for user-visible changes.
-7. Commit with a conventional message, for example `fix(hello): trim the fallback argument`.
+7. Commit with a conventional message, for example `test(smoke): verify packed extension loading`.
 8. Add an ADR under [`docs/adr/`](docs/adr/) only for a consequential decision, not for routine edits.
 9. Open a pull request using the template.
 
@@ -67,12 +66,12 @@ Run the smallest relevant check while iterating, then `npm run check` before ope
 - **Decisions are recorded selectively.** Use an ADR for a public contract, test strategy, package boundary, compatibility policy, or release policy change. Skip ADRs for naming, formatting, and other reversible details.
 - **Resources are cleaned up.** If a change introduces a subprocess, temporary directory, timer, server, or open handle, implement cancellation and cleanup and test them.
 - **Do not change data you did not intend to change.** Preserve files, messages, and user configuration outside the feature. Tests must use temporary locations, never a real home directory.
-- **No hidden network.** Tests and the example are offline. If a feature requires the network, isolate and document it.
+- **No hidden network.** Tests remain offline; provider requests are on demand and optional replay can make another request. Isolate and document network behavior.
 
 ## Coding standards
 
 - Keep `src/index.ts` as thin Pi wiring. Put logic that can be pure in its own module.
-- The starter imports host packages with `import type`. A runtime import from a host peer is legitimate because Pi supplies it; use `import type` when only types are needed so unit tests can use fakes. Host packages stay peer dependencies, and adding any npm dependency is a reviewed decision.
+- Pi supplies host peers at runtime. Use `import type` when only types are needed so unit tests can use fakes. Host packages stay peer dependencies, and adding any npm dependency is a reviewed decision.
 - Do not add a dependency for logic that a few lines can express. If a dependency is justified, keep host packages as peer dependencies and use optional dependencies only for genuinely optional features.
 - Avoid TypeScript parameter properties, enums, and namespaces; Node's strip-only mode does not support them.
 - Do not log secrets, prompts, message content, or environment dumps.

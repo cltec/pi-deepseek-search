@@ -1,5 +1,14 @@
 # Troubleshooting
 
+## Search or fetch fails
+
+- Ensure `DEEPSEEK_API_KEY` is set in Pi's environment and restart Pi after changing it. Status only confirms registration; it does not verify the key or contact DeepSeek.
+- Any presence of `PI_OFFLINE`, even an empty value, disables provider access. Remove it only when online requests are intended.
+- Search queries must contain 1–128 Unicode characters; fetch accepts an absolute HTTP(S) URL without credentials. There is no endpoint override. HTTP errors may indicate authentication, balance, rate limits, or unavailable content; see [DeepSeek's guide](https://api-docs.deepseek.com/guides/search.md).
+- A ref is session-scoped and its payload can be evicted. Replay is disabled by default; if enabled globally, it permits at most one provider attempt for an evicted ref, which can fail or return changed data. A missing ref cannot be recovered after reset or record eviction.
+- Search reads require the original 1-based `resultIndex`. Fetch supports `title` and `content`, not `url` or a links section. Fetch file exports require existing parent directories and do not overwrite unless explicitly authorized. Temporary exports are removed at shutdown.
+- To debug operations directly, set `PI_DEEPSEEK_SEARCH_DEV=1` before startup and use `/deepseek-search QUERY`, `/deepseek-fetch URL`, or `/deepseek-read-full {"ref":"fetch:…"}`. Search and fetch, including replay, may incur charges.
+
 ## Nothing runs, or the test runner rejects TypeScript
 
 **Symptom:** `npm test` fails with a syntax or unknown-file-extension error, or exits before running tests.
@@ -17,7 +26,7 @@ Rewrite the offending syntax with plain fields, string unions, and regular funct
 
 **Symptom:** `Cannot find package '@earendil-works/pi-coding-agent'` while running `npm test`.
 
-The test process does not install the host package. Runtime imports from a host peer are legitimate in an extension because Pi supplies the package, but unit tests must either avoid that path or provide a stub. The starter imports only types and injects a fake `ExtensionAPI`. Do not add the host to `dependencies` to silence this.
+The test process does not install the host package. Runtime imports from a host peer are legitimate in an extension because Pi supplies the package, but unit tests must either avoid that path or provide a stub. The extension uses host types and tests inject a fake `ExtensionAPI`. Do not add the host to `dependencies` to silence this.
 
 ## Package check fails
 
@@ -42,9 +51,9 @@ PI_BIN=/absolute/path/to/pi npm run test:e2e
 
 **Symptom:** the binary exists but the extension API is missing or behaves differently.
 
-Check the version against `scripts/quality.json` (1.5.2 for this template). An absolute `PI_BIN` selects the binary, and its version must equal the baseline; `PI_VERSION` can set the exact stable version only for a temporary experiment. CI installs that version into a temporary prefix outside the checkout; a random global Pi may not match.
+Check the version against `scripts/quality.json` (currently 1.5.2). An absolute `PI_BIN` selects the binary, and its version must equal the baseline; `PI_VERSION` can set the exact stable version only for a temporary experiment. CI installs that version into a temporary prefix outside the checkout; a random global Pi may not match.
 
-**Symptom:** `/hello` is discovered from the checkout but not from the packed archive.
+**Symptom:** `/deepseek-search-status` is discovered from the checkout but not from the packed archive.
 
 - Check `package.json#pi` for the extension entry point.
 - Check that `files` includes the entry point and any resource the manifest references.
@@ -56,7 +65,7 @@ Check the version against `scripts/quality.json` (1.5.2 for this template). An a
 
 - Bounded shutdown means the runner kills the child after the timeout; the sanitized artifact records only the category.
 - Reproduce with a small temporary home and the same Pi binary. Do not reuse your real configuration.
-- Check the handler for unresolved promises, timers, or work that waits on a model. The example starts no turn.
+- Check the handler for unresolved promises, timers, or work that waits on a model. The status command starts no turn.
 - Do not increase the timeout before checking for a hang or a leaked child process.
 
 **Symptom:** the packed path fails while listing or extracting the archive.
@@ -75,23 +84,23 @@ Cleanup must run in `finally` or test teardown on success and failure. Fix the h
 
 Only sanitized schema-1 summaries belong in the result file (default `artifacts/e2e-result.json`, or `E2E_RESULT_PATH`). `scripts/summarize-e2e.mjs` renders only known fields. Remove raw output from the artifact and keep it in the temporary directory that is deleted. Do not commit artifacts.
 
-## `/hello` does not appear in Pi
+## `/deepseek-search-status` does not appear in Pi
 
 - From a checkout, load it explicitly: `pi -e ./src/index.ts`.
 - From a package, confirm it is installed and enabled in the current scope, and that the manifest path is correct.
 - Extension commands are not built-in slash commands; check that the extension loaded without a warning.
 - After changing a locally installed package, reload or reinstall as appropriate. A checkout loaded with `-e` is read at startup.
-- If multiple extensions register `hello`, Pi may expose suffixed invocations such as `/hello:1`. Remove or rename the duplicate.
+- If the extension is loaded twice, Pi may expose suffixed invocations such as `/deepseek-search-status:1`. Remove the duplicate load.
 
 ## The reply is missing in print or JSON mode
 
-`ctx.ui.notify` is for UI modes. Print and JSON modes have `ctx.hasUI === false`, and the starter sends a custom message with `display: true` instead. If the output is still missing:
+`ctx.ui.notify` is for UI modes. Print and JSON modes have `ctx.hasUI === false`, and the status command sends a custom message with `display: true` instead. If the output is still missing:
 
 - Confirm the handler reaches the headless branch.
-- Confirm `triggerTurn: false` is intentional; the example must not start a model turn.
+- Confirm `triggerTurn: false` is intentional; the status command must not start a model turn.
 - Do not write directly to stdout in RPC or JSON mode; Pi owns those protocol streams.
 
-In TUI and RPC modes, `ctx.hasUI` is true and the greeting is an info notification rather than a transcript message. That difference is expected.
+In TUI and RPC modes, `ctx.hasUI` is true and the status is an info notification rather than a transcript message. That difference is expected.
 
 ## A change works locally but CI fails
 
@@ -102,9 +111,7 @@ In TUI and RPC modes, `ctx.hasUI` is true and the greeting is an info notificati
 
 ## Publishing does not work
 
-That is the default. The template sets `"private": true` and the release workflow additionally requires the `ENABLE_NPM_PUBLISH` repository variable. Merging a version bump does not create a tag; stable tags are created manually after review and explicit authorization.
-
-Do not remove the guards or add an automatic tag to work around this. See [`RELEASING.md`](RELEASING.md).
+That is the default. The package sets `"private": true` and the release workflow additionally requires the `ENABLE_NPM_PUBLISH` repository variable. The inherited automatic release workflow can tag a verified stable version increase without publishing it; see [`RELEASING.md`](RELEASING.md).
 
 ## Additional resources leak into the package
 
@@ -114,5 +121,4 @@ They are treated as shipping files. Move development material outside the allowl
 
 - [`TESTING.md`](TESTING.md) for layer boundaries and e2e isolation.
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) for command flow and failure behavior.
-- [`TEMPLATE-SETUP.md`](TEMPLATE-SETUP.md) for renaming and replacement work.
 - [`../CONTRIBUTING.md`](../CONTRIBUTING.md) for the expected checks.

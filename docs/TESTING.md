@@ -1,6 +1,6 @@
 # Testing
 
-The template uses layered checks: fast offline tests for logic, adapter, and tooling helpers; a package-content check; and real-Pi checks. Each layer catches a different class of mistake.
+The extension uses layered checks: offline tests with fake provider transports for configuration, retrieval, wiring and tooling; a package-content check; and real-Pi smoke tests. Each layer catches a different class of mistake.
 
 ## Environment
 
@@ -9,7 +9,7 @@ The template uses layered checks: fast offline tests for logic, adapter, and too
 | Node.js | 22.18 or newer. CI runs Node 22 and 24 on Linux with the same commands; local verification here uses Node 22. |
 | Platform | Linux. Other operating systems are not currently verified. |
 | Pi | 1.5.2 baseline for e2e, pinned in `scripts/quality.json`. |
-| Dependencies | None for the starter. Do not run `npm install` for the starter. E2E also needs a Pi binary and a system GNU-compatible `tar`. |
+| Dependencies | No installation is needed for offline tests; skip `npm install`. E2E also needs a Pi binary and a system GNU-compatible `tar`. |
 | Network | `npm test` and `npm run check` are offline. E2E execution is offline. CI's initial pinned Pi install requires network. |
 
 Node strips TypeScript types for the tests; it does not typecheck. There is no lint, typecheck, or build step.
@@ -22,39 +22,19 @@ Node strips TypeScript types for the tests; it does not typecheck. There is no l
 | Package contents | `npm run check:package` | No | No |
 | Full local check | `npm run check` | No | No |
 | End-to-end | `npm run test:e2e` | Yes | No |
-| One test file | `node --test test/greeting.test.ts` | No | No |
+| One test file | `node --test test/extension.test.ts` | No | No |
 
 `npm run check` is `npm test && npm run check:package`. It does not run e2e. Run e2e when changing extension wiring, the command contract, package contents, or the Pi baseline.
 
-## Pure logic
-
-`test/` imports the pure formatter directly. No Pi process or host package is involved.
-
-Cover:
-
-- Empty input.
-- Whitespace-only input.
-- Leading and trailing whitespace.
-- Ordinary names.
-- Names with internal spaces or punctuation.
-
-Assert the returned text. Do not assert implementation details such as the number of `trim` calls.
-
 ## Extension wiring
 
-The same `npm test` run contains wiring tests. They import the extension entry point with a type-only host dependency and inject fakes:
+The same `npm test` run contains wiring tests. They import `src/wiring.ts` and inject fakes; `src/index.ts` has Pi runtime imports and is exercised by the smoke harness:
 
-- A fake `ExtensionAPI` records `registerCommand(name, options)` and `sendMessage(message, options)`.
-- A fake command context has `hasUI` and `ui.notify`.
-- The test invokes the captured handler with an argument and the fake context.
+- A fake `ExtensionAPI` records tool and command registrations and messages.
+- Fake contexts exercise UI and headless behavior, trust, and session lifecycle.
+- Provider tests inject fake responses; retrieval tests use temporary directories and bounded caches. These are not live API tests.
 
-Assert:
-
-- The command is registered with the expected name.
-- The formatter output reaches the output channel unchanged.
-- The UI branch calls `notify` with the greeting and `"info"`.
-- The headless branch calls `sendMessage` with `customType: "template-greeting"`, `display: true`, `content` equal to the greeting, and `triggerTurn: false`.
-- The blank-argument fallback and trimming behave the same through the handler as through the pure function.
+Assert the tool and [status command contracts](../src/AGENTS.md), including offline behavior and both status output channels.
 
 Wiring tests must not launch Pi. That is the e2e layer's job.
 
@@ -86,13 +66,15 @@ When adding a publishable resource, update `package.json#files` and the check to
 
 ## Real Pi checks
 
+For an agent-run proof with isolated setup and retained evidence, follow the [Pi DeepSeek Search verification skill](../.cursor/skills/verify-pi-deepseek-search/SKILL.md).
+
 `npm run test:e2e` launches a real Pi child process and verifies three paths:
 
 1. **Checkout RPC:** Pi loads `src/index.ts` with `-e` and serves the command over RPC.
-2. **Headless JSON:** Pi runs with `--mode json -p`, loads the checkout with `-e`, and invokes `/hello Ada`. The test asserts the visible `template-greeting` custom message and a clean exit.
+2. **Headless JSON:** Pi runs with `--mode json -p`, loads the checkout with `-e`, and invokes `/deepseek-search-status`. The test asserts the visible status custom message and a clean exit.
 3. **Packed archive RPC:** the runner packs the current tree, or reuses an exact checked archive via `PACKAGE_ARCHIVE=/absolute/file.tgz`. It lists and extracts the tarball with a system GNU-compatible `tar` (regular files and directories only), writes a temporary Pi `settings.json` whose `packages` entry points at the extracted directory, and starts Pi in RPC mode. Pi discovers the command from the package manifest.
 
-For the RPC paths, the checks establish that Pi starts, the `hello` command is discoverable, invoking it is handled without a model turn, and the greeting appears through the notification channel. The packed path also proves that the release allowlist contains the entry point and manifest.
+For the RPC paths, the checks establish that Pi starts, `/deepseek-search-status` is discoverable and reports status through the notification channel without a model turn. The packed path also proves that the release allowlist contains the entry point and manifest.
 
 Limits: this does **not** run `pi install` and does **not** resolve or install from an npm registry. The extracted local-directory load is the checked path; install-command and registry behavior need separate verification if a fork depends on them.
 
@@ -136,15 +118,15 @@ The runner writes a sanitized schema-1 result to `artifacts/e2e-result.json`, or
 
 ## What is not covered
 
-- Provider transports, authentication, model output, and streaming.
+- Live provider availability, actual credentials, billing, and API compatibility; fake transport tests cannot establish these. Model output and live streaming are also outside these checks.
 - TUI rendering and terminal behavior.
 - Operating systems other than Linux.
 - TypeScript type errors, since the project does not typecheck.
-- Performance or concurrency. The starter has no such behavior.
+- Production performance and real-provider concurrency limits; deterministic tests exercise selected concurrency and cancellation behavior.
 - The `pi install` command, npm registry resolution/installation, and the published-package install path.
 - Tar formats or archive entries beyond GNU-compatible `tar` with regular files and directories.
 
-If a fork adds resources or network access, add tests for cancellation, cleanup, timeout, and failure before claiming support.
+When adding resources or network access, test cancellation, cleanup, timeout, and failure before claiming support.
 
 ## Writing tests
 
@@ -153,7 +135,7 @@ If a fork adds resources or network access, add tests for cancellation, cleanup,
 - Keep unit and wiring tests fast and offline. Tooling tests may use temporary fixtures and isolated local Node subprocesses; always remove fixtures in `finally`.
 - Do not run `npm pack`, launch Pi, or use the network inside `npm test`.
 - A bug fix includes a regression test that fails without the fix.
-- Update e2e smoke assertions with the example. Do not delete assertions to make a change pass.
+- Update e2e smoke assertions with the command contract. Do not delete assertions to make a change pass.
 - If a test needs a temporary directory, create it under `os.tmpdir()` and remove it in teardown. Never use a real home.
 
 ## CI
