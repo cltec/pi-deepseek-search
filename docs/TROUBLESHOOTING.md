@@ -1,5 +1,7 @@
 # Troubleshooting
 
+For installation and a first-use walkthrough, see the [README quick start](../README.md#quick-start).
+
 ## Search or fetch fails
 
 - Ensure `DEEPSEEK_API_KEY` is set in Pi's environment and restart Pi after changing it. Status only confirms registration; it does not verify the key or contact DeepSeek.
