@@ -66,7 +66,7 @@ When adding a publishable resource, update `package.json#files` and the check to
 
 ## Real Pi checks
 
-For an agent-run proof with isolated setup and retained evidence, follow the [Pi DeepSeek Search verification skill](../.cursor/skills/verify-pi-deepseek-search/SKILL.md).
+For an agent-run proof with isolated setup and retained evidence, follow the [Pi DeepSeek Search verification skill](../.cursor/skills/verify-pi-deepseek-search/SKILL.md). In Pi, open the trusted repository and run `/skill:verify-pi-deepseek-search`. The project-local `.pi/skills/` symlink points at the same skill Cursor uses; no global install is needed.
 
 `npm run test:e2e` launches a real Pi child process and verifies three paths:
 
@@ -90,7 +90,7 @@ The selected binary's reported version must equal the `scripts/quality.json` bas
 
 ### Isolation
 
-E2E is the only layer allowed to touch a Pi process, and it must isolate it:
+The offline e2e suite must isolate every Pi process:
 
 - Create a temporary root with its own `HOME`, `PI_CODING_AGENT_DIR`, working directory, and pack output.
 - Pass an explicit environment allowlist. Do not spread `process.env`; provider keys, proxies, and user configuration must not leak in.
@@ -116,9 +116,19 @@ The runner writes a sanitized schema-1 result to `artifacts/e2e-result.json`, or
 
 `scripts/summarize-e2e.mjs` renders only known fields: outcome, Node and Pi versions, overall cleanup, and each check's name, status, failure category, and cleanup. It reads the same environment variable and default path. It does not render raw messages, protocol data, environment values, home paths, prompts, or session content. Artifacts are not committed.
 
-## What is not covered
+## GitHub install check
 
-- Live provider availability, actual credentials, billing, and API compatibility; fake transport tests cannot establish these. Model output and live streaming are also outside these checks.
+Before the first GitHub release, exercise the actual `pi install git:github.com/cltec/pi-deepseek-search@REF` path. Use the reviewed commit SHA when testing a PR and the immutable version tag after release. Run the pinned Pi binary from an empty temporary working directory with a fresh `HOME`, `PI_CODING_AGENT_DIR`, XDG config/cache, and `TMPDIR`; pass no provider credentials. Installation needs GitHub access. Set `npm_config_offline=true` and `npm_config_ignore_scripts=true`; this package has no runtime dependencies to download.
+
+Then launch the same Pi binary with the installed package, `PI_OFFLINE=1`, and session persistence disabled. Verify `/deepseek-search-status` comes from a package, reports all three registered tools, and leaves Pi idle with no model turn. Do not pass `-e`: the check must use the installation recorded by Pi. Tear down the process and delete the temporary installation. Report the exact ref and observed outcome; neither the offline packed-archive smoke nor a branch-only install proves that the release tag is installable.
+
+## Manual provider probe
+
+The [verification skill](../.cursor/skills/verify-pi-deepseek-search/SKILL.md#provider-probe) runs `scripts/probe-deepseek.mjs` separately from `npm run check`, `npm run test:e2e`, and CI. `--offline` verifies that real Pi handles the developer commands but blocks Search and Fetch. `--live` requires explicit authorization per run and `DEEPSEEK_API_KEY` already exported. Both use the pinned `PI_BIN`, load only the checkout, leave the transcript empty, and emit a sanitized JSON result. The live path invokes at most one Search and one Fetch, then checks a cached read without replay or a conversation model.
+
+## What is not covered by the automated gates
+
+- Live provider availability, actual credentials, billing, and API compatibility. The manual provider probe covers live Search and Fetch when run with `--live`; it does not test model tool selection, model output, or live model streaming.
 - TUI rendering and terminal behavior.
 - Operating systems other than Linux.
 - TypeScript type errors, since the project does not typecheck.

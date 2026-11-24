@@ -1,11 +1,11 @@
 ---
 name: verify-pi-deepseek-search
-description: Verify Pi DeepSeek Search in real Pi after changing tool registration, the status command, checkout loading, headless JSON output, or packaged extension loading, or when collecting proof of those paths.
+description: Verify the Pi DeepSeek Search CLI extension after a behavior or packaging change, for regression checks, or for explicitly approved live Search and Fetch checks.
 ---
 
 # Verify Pi DeepSeek Search
 
-Use the repo's real-Pi smoke harness, not a live Pi session or a mocked `ExtensionAPI`. Read the [feature map](features/README.md) and the matching journey before running it. The status command verifies product tool registration, not tool execution; use offline `node:test` fixture pipeline tests for execution behavior.
+Select the affected journeys in the [feature map](features/README.md). Use their targeted fixture commands while iterating, then run the offline fixture/package gate and isolated real-Pi smoke gate. The smoke gate proves loading and registration; the fixtures prove tool behavior, not live compatibility. Choose the optional provider probe only for the coverage it adds.
 
 ## Launch
 
@@ -31,7 +31,7 @@ if [[ -z ${PI_BIN:-} ]]; then
 fi
 ```
 
-The temporary Pi bootstrap (if needed) uses the npm registry; the drive does not. The drive starts Pi on demand in the normal environment without development commands. RPC is ready only when `get_commands` returns the expected `deepseek-search-status` registration and origin. Headless JSON is a one-shot invocation: it must receive the expected message and exit successfully. The harness owns process shutdown.
+The temporary Pi bootstrap (if needed) uses the npm registry; the offline gates do not. The smoke harness starts Pi on demand without development commands. RPC is ready only when `get_commands` returns the expected `deepseek-search-status` registration and origin. Headless JSON is a one-shot invocation: it must receive the expected message and exit successfully. The harness owns process shutdown.
 
 ## Doctor
 
@@ -51,11 +51,23 @@ printf 'Doctor: pinned Pi %s available\n' "$actual"
 
 ## Drive
 
-Run the whole mapped feature with `npm run test:e2e`. The harness drives checkout RPC, headless JSON, and packed archive RPC without user profiles or credentials. Use the fresh pack here; the isolated parent environment intentionally drops `PI_VERSION` and `PACKAGE_ARCHIVE`.
+### Fixture and package gate
+
+Run the full local gate after the targeted fixtures in the selected journey. Require a zero exit and the package allowlist count; live service availability never decides this gate.
+
+```bash
+env -i PATH="$PATH" HOME="$run_root/home" TMPDIR="$run_root/scratch" \
+  npm_config_cache="$run_root/npm-cache" npm_config_offline=true \
+  npm_config_update_notifier=false npm run check
+```
+
+### Real-Pi smoke gate
+
+Run all three [status entry points](features/status.md) without user profiles or credentials. Use the fresh pack here; the isolated parent environment drops `PI_VERSION` and `PACKAGE_ARCHIVE`.
 
 ```bash
 smoke=(env -i PATH="$PATH" HOME="$run_root/home" TMPDIR="$run_root/scratch"
-  npm_config_cache="$run_root/npm-cache" npm_config_offline=true
+  npm_config_cache="$run_root/npm-cache" npm_config_offline=true npm_config_update_notifier=false
   PI_BIN="$PI_BIN" E2E_RESULT_PATH="$E2E_RESULT_PATH" npm run test:e2e)
 "${smoke[@]}"
 ```
@@ -72,6 +84,19 @@ fi
 printf '%s\n' 'No IPv4/IPv6 connect or send observed during the drive.'
 ```
 
+### Provider probe
+
+After a provider or debug-command change, verify [offline suppression in real Pi](features/search-fetch.md#driving-it-with-offline-fixtures-and-the-provider-probe). `--offline` requires no credential and proves the commands are handled and refuse network access. `--live` is a separate manual check: ask for explicit authorization for each fresh run, with a budget of at most one Search and one Fetch request. No model turn or replay is needed. Follow the feature's live preconditions before invoking it.
+
+```bash
+# Offline suppression:
+env -i PATH="$PATH" HOME="$run_root/home" PI_BIN="$PI_BIN" TMPDIR="$run_root/scratch" \
+  scripts/probe-deepseek.mjs --offline | tee "$evidence_dir/provider-offline.json"
+# Only when a fresh live run is authorized and DEEPSEEK_API_KEY is exported:
+PI_BIN="$PI_BIN" TMPDIR="$run_root/scratch" scripts/probe-deepseek.mjs --live \
+  | tee "$evidence_dir/provider-live.json"
+```
+
 ## Evidence
 
 ```bash
@@ -79,7 +104,7 @@ test -s "$E2E_RESULT_PATH"
 env -u GITHUB_STEP_SUMMARY node scripts/summarize-e2e.mjs
 ```
 
-Keep only the sanitized schema-1 JSON named by Launch (ignored by Git). Require a successful drive, `outcome: "pass"`, `cleanup: "clean"`, and all three named journey checks passing with `deepseek-search-status` in `commands`. Cite the evidence path, the entry points exercised, and the observable assertions from the feature map. The RPC checks require an idle agent and empty transcript after the notification; JSON requires no agent events and exactly one visible custom message. A version check, command listing, or unit test alone does not prove the action. On failure, report the scenario and category from the artifact, if produced; never save raw protocol output or substitute a passing entry point for a failing one.
+For smoke, require `outcome: "pass"`, `cleanup: "clean"`, and all three entry-point checks passing with `deepseek-search-status` in `commands`; the [status journey](features/status.md) specifies the observations. For provider probes, require the requested `mode`, `outcome: "pass"`, `cleanup: "clean"`, and the checks listed in the [search/fetch journey](features/search-fetch.md). Retain only the sanitized JSON in `artifacts/` (ignored by Git); never save raw protocol, traces, prompts, fetched text, refs, or credentials. Report the gate, commands, coverage, and artifact path; for a failure report its scenario and category instead of substituting a passing entry point. Distinguish a live run not authorized or not attempted from a passing offline gate.
 
 ## Cleanup
 
@@ -91,11 +116,14 @@ rm -rf -- "$run_root"
 trap - EXIT
 test ! -e "$run_root"
 test -s "$E2E_RESULT_PATH"
-printf 'Cleanup complete; evidence retained: %s\n' "$E2E_RESULT_PATH"
+for artifact in "$evidence_dir"/provider-*.json; do
+  [[ ! -e $artifact ]] || test -s "$artifact"
+done
+printf 'Cleanup complete; evidence retained: %s\n' "$evidence_dir"
 ```
 
 After a failed step, exit the disposable shell so its `EXIT` trap removes setup scratch. A harness cleanup failure is a failed verification; diagnose it before retrying. Never kill processes by name or remove another run's scratch or evidence.
 
 ## Helpers
 
-No skill-local executable. Use `npm run test:e2e` to drive Pi and `node scripts/summarize-e2e.mjs` to render the sanitized result as shown above.
+Use `npm run check` for fixtures and package, `npm run test:e2e` and `node scripts/summarize-e2e.mjs` for smoke, and `scripts/probe-deepseek.mjs --offline|--live` for the separate provider probe, as invoked above. Keep the journeys current with `/maintain-verification-skill`.

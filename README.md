@@ -1,15 +1,16 @@
 # Pi DeepSeek Search
 
-A [Pi](https://pi.dev) extension providing on-demand web discovery and page retrieval using the [DeepSeek Search & Fetch APIs](https://api-docs.deepseek.com/guides/search.md). It does not replace or select Pi's conversation model: the model and this extension's API access are configured independently. The package is not published to npm.
+A [Pi](https://pi.dev) extension providing on-demand web discovery and page retrieval using the [DeepSeek Search & Fetch APIs](https://api-docs.deepseek.com/guides/search.md). It does not replace or select Pi's conversation model: the model and this extension's API access are configured independently.
 
 ## Getting started
 
-Use Node.js 22.18 or newer and Pi 1.5.2 or newer in the 1.x series (the smoke suite pins 1.5.2). Set `DEEPSEEK_API_KEY` in Pi's environment, then load the checkout:
+Use Node.js 22.18 or newer and Pi 1.5.2 or newer in the 1.x series (the smoke suite pins 1.5.2). Install from the [GitHub repository](https://github.com/cltec/pi-deepseek-search) using a tag listed on [Releases](https://github.com/cltec/pi-deepseek-search/releases). For the planned first release, once `v0.1.0` is available:
 
 ```sh
-export DEEPSEEK_API_KEY='your-key'
-pi -e ./src/index.ts
+pi install git:github.com/cltec/pi-deepseek-search@v0.1.0
 ```
+
+The unscoped public npm package `pi-deepseek-search` is a different extension. To try this checkout before release, run `pi -e ./src/index.ts` instead of installing it. Set `DEEPSEEK_API_KEY` in Pi's environment before using the online tools.
 
 Never commit the key. `/deepseek-search-status` checks registered tools without a model turn or provider request; it does not verify credentials or connectivity. Loading the extension makes no provider request and does not create configuration. It reads the key from the environment; it does not send it until a provider call. If `PI_OFFLINE` is present in the environment, even with an empty value, provider access is disabled. There is no endpoint override.
 
@@ -65,8 +66,8 @@ npm run check       # Offline tests and package allowlist
 npm run test:e2e    # Real Pi, isolated and offline
 ```
 
-Set `PI_BIN` to an absolute path to select the pinned Pi binary. Smoke tests use temporary directories and an allowlisted environment; they make no provider calls. The packed test loads an extracted archive locally, not through `pi install`. No live API or credential verification is implied by these checks.
+Set `PI_BIN` to an absolute path to select the pinned Pi binary. Smoke tests use temporary directories and an allowlisted environment; they make no provider calls. The packed test loads an extracted archive locally, not through `pi install`. No live API or credential verification is implied by these checks. For the regression workflow and a separate, explicitly opt-in live provider probe, see [Testing](docs/TESTING.md#manual-provider-probe).
 
-See [Architecture](docs/ARCHITECTURE.md), [Testing](docs/TESTING.md), [Troubleshooting](docs/TROUBLESHOOTING.md), and [Contributing](CONTRIBUTING.md). Publishing is disabled; see [Releasing](docs/RELEASING.md). Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
+See [Architecture](docs/ARCHITECTURE.md), [Testing](docs/TESTING.md), [Troubleshooting](docs/TROUBLESHOOTING.md), and [Contributing](CONTRIBUTING.md). For distribution and npm publication plans, see [Releasing](docs/RELEASING.md). For differences from the similarly named npm package, see the [extension comparison](docs/DEEPSEEK-EXTENSION-COMPARISON.md). Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
 
 Apache-2.0. See [LICENSE](LICENSE).

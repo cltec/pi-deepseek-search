@@ -9,32 +9,29 @@ The release workflow validates the tag and package identity before any publicati
 
 Release validation requires the repository in `package.json` to match `github.repository`.
 
-## One-time setup
+## First distribution: GitHub `v0.1.0`
+
+1. Review and merge the GitHub-first PR into `main` with npm publishing disabled. Require the CI checks on Node 22 and 24 and the isolated install check described in [Testing](TESTING.md#github-install-check).
+2. After explicit authorization, create and push `v0.1.0` on the exact reviewed commit. The base and feature already declare `0.1.0`, so this merge does not trigger automatic version-increase tagging. Keep `"private": true` and leave `ENABLE_NPM_PUBLISH` unset.
+3. After the tag's validation checks pass, create the GitHub Release manually using the `0.1.0` changelog notes. Its automated GitHub Release job is downstream of npm publishing and is intentionally skipped. Git distribution uses the tag itself: `pi install git:github.com/cltec/pi-deepseek-search@v0.1.0`.
+4. Verify installation from the pinned tag in a fresh Pi profile. Do not move the tag or add npm artifacts or credentials to GitHub.
+
+## One-time npm setup (after GitHub distribution)
 
 ### 1. Make the package publishable
 
-Publishing is still disabled. Before the first release:
+npm publishing remains disabled for the GitHub release. Before the first npm publication:
 
-- Confirm the public package name and keep `repository` as the canonical URL of the GitHub repository that runs this workflow.
+- The unscoped name `pi-deepseek-search` belongs to another publisher. Confirm control of the npm scope `@cltec` and use `@cltec/pi-deepseek-search` in a separate reviewed npm bootstrap PR. Keep `repository` set to the canonical `cltec/pi-deepseek-search` GitHub URL.
 - Change `"private": true` to `"private": false` only when you are ready to publish.
 - Keep the Pi baseline in `scripts/quality.json`; the repository pins `1.5.2`.
-- Add a changelog heading for the exact version, for example `## [0.2.0]`. The release script rejects a missing or mismatched heading.
+- Choose the npm bootstrap version and add a matching changelog heading through the bootstrap PR. Use a new version for changed release metadata if you also want a Git tag for that revision. A version increase on `main` can still trigger automatic tagging while the npm publication gate is off.
 
 The package allowlist is checked by `npm run check`. Do not widen it to make development files publishable.
 
-### 2. Enable the repository variable
+### 2. Bootstrap the npm package manually
 
-In the GitHub repository, open **Settings → Secrets and variables → Actions → Variables** and create a repository variable:
-
-| Name | Value |
-| --- | --- |
-| `ENABLE_NPM_PUBLISH` | `true` |
-
-This is a variable, not a secret. Anything other than the exact lowercase value `true` leaves publication disabled. Do not add `NPM_TOKEN`, `NODE_AUTH_TOKEN`, or any npm/GitHub personal token for this workflow.
-
-### 3. Bootstrap the npm package, if needed
-
-If the npm package does not exist yet, publish the reviewed first-release package manually from a clean checkout with your npm account and two-factor authentication. This is a one-time local bootstrap, not a CI credential.
+Keep `ENABLE_NPM_PUBLISH` unset during bootstrap. If the scoped package does not exist yet, publish the reviewed npm bootstrap revision manually from a clean checkout with your npm account and two-factor authentication. This is a one-time local bootstrap, not a CI credential. Do not reuse or move the GitHub `v0.1.0` tag to point at changed package metadata.
 
 Before publishing, run the package checks and inspect the exact pack contents:
 
@@ -48,12 +45,12 @@ Then log in and publish:
 ```bash
 npm login --registry=https://registry.npmjs.org/
 npm whoami --registry=https://registry.npmjs.org/
-npm publish --registry=https://registry.npmjs.org/ --ignore-scripts
+npm publish --registry=https://registry.npmjs.org/ --ignore-scripts --access public
 ```
 
-Add `--access public` when publishing a scoped package. Complete npm's browser and 2FA prompts. Never reuse an old package name or publish from an uncommitted checkout. Once the package exists, configure its trusted publisher.
+Complete npm's browser and 2FA prompts. Never reuse an old package name or publish from an uncommitted checkout. Once the package exists, configure its trusted publisher.
 
-### 4. Configure npm trusted publishing
+### 3. Configure npm trusted publishing
 
 Open the package on npm → **Settings → Trusted publishing → GitHub Actions** and enter the exact values for this repository:
 
@@ -74,12 +71,13 @@ npm automatically generates provenance for trusted publishing when the source re
 
 Do not wrap the publishing command in a reusable workflow. Configure npm for the workflow that actually runs `npm publish`, which is the `publish` job in `release.yml`.
 
-### 5. Protect the release boundary
+### 4. Protect and enable CI publication after manual bootstrap
 
 - Keep branch protection and tag protection or rulesets for `v*` tags.
 - Allow GitHub Actions to use the job permissions declared in `release.yml`.
 - Keep `contents: read` at the workflow level. Only the publish job gets `id-token: write`; only the GitHub Release job gets `contents: write`.
 - Do not add secrets to this workflow, and do not let an unrelated workflow publish the package.
+- After the scoped package is manually published and the trusted publisher is configured, explicitly authorize and set the GitHub Actions repository **variable** `ENABLE_NPM_PUBLISH` to `true` (exact lowercase). Use the reviewed version-increase process below for future releases. Do not add `NPM_TOKEN`, `NODE_AUTH_TOKEN`, or personal tokens.
 - After trusted publishing works, consider npm's **Require two-factor authentication and disallow tokens** setting.
 
 ## Prepare the version
@@ -146,8 +144,8 @@ The publish job has `id-token: write`; the GitHub Release job has `contents: wri
 Check all of these:
 
 - **Actions → Release** has successful preflight, Node 22/24 checks, Pi smoke, package, publish, and GitHub Release jobs.
-- npm lists the expected version, for example `npm view pi-deepseek-search@0.2.0 version`.
-- The npm archive integrity matches the checked release record, for example `npm view pi-deepseek-search@0.2.0 dist.integrity`.
+- npm lists the expected version, for example `npm view @cltec/pi-deepseek-search@0.2.0 version`.
+- The npm archive integrity matches the checked release record, for example `npm view @cltec/pi-deepseek-search@0.2.0 dist.integrity`.
 - GitHub Releases has the matching tag and notes.
 
 ## Recover from a failure

@@ -25,7 +25,7 @@ Preconditions: [Launch and Doctor](../SKILL.md) pass. Use the harness, which add
 
 ## Gotchas
 
-- The runtime-generated tool list proves registration, not execution. Verify search, fetch, and read-full behavior with offline `node:test` fixture pipeline tests; do not add provider keys, mocks, or live calls to e2e.
+- The runtime-generated tool list proves registration, not execution. Use the [search/fetch](search-fetch.md) and [retrieval](read-full.md) journeys for execution; keep provider keys, mocks, and live requests out of the smoke suite.
 - A successful `pi --version` only qualifies the binary; it does not verify command discovery or handling.
 - The packed journey tests a local extracted package, not `pi install` or registry resolution.
 - A follow-up model response or a transcript message in RPC is unexpected, even if the status notification was correct.
