@@ -2,6 +2,22 @@
 
 A [Pi](https://pi.dev) extension providing on-demand web discovery and page retrieval using the [DeepSeek Search & Fetch APIs](https://api-docs.deepseek.com/guides/search.md). It does not replace or select Pi's conversation model: the model and this extension's API access are configured independently.
 
+[![CI](https://github.com/cltec/pi-deepseek-search/actions/workflows/ci.yml/badge.svg)](https://github.com/cltec/pi-deepseek-search/actions/workflows/ci.yml) [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+
+## Quick start
+
+Requires Node.js 22.18 or newer and Pi 1.5.2 or newer in the 1.x series.
+
+1. Install a tag listed on [Releases](https://github.com/cltec/pi-deepseek-search/releases):
+   ```sh
+   pi install git:github.com/cltec/pi-deepseek-search@v0.1.0
+   ```
+2. Set `DEEPSEEK_API_KEY` in Pi's environment, then start Pi. Never commit the key.
+3. Run `/deepseek-search-status` in Pi to check tool registration. This does **not** verify credentials or connectivity.
+4. Ask Pi, for example: “Search the web for recent Node.js release notes and summarize the sources.” The model can use search and return a summary with source URLs. Online calls may incur charges.
+
+If `PI_OFFLINE` is present, even with an empty value, provider access is disabled. Loading the extension makes no provider request and creates no configuration. See [Cost, privacy and limits](#cost-privacy-and-limits) before sharing sensitive queries or URLs.
+
 ## What sets this extension apart
 
 - **Bounded output with follow-up reads.** Search returns compact previews; fetch returns Markdown within a display budget. Use `deepseek_web_read_full` to page through cached content without another API request, or export an entire fetched field to a file. Temporary exports are cleaned up at session shutdown, and model-initiated exports to explicit paths require confirmation. Replay after eviction is off by default and can incur another charge if enabled.
@@ -10,15 +26,9 @@ A [Pi](https://pi.dev) extension providing on-demand web discovery and page retr
 
 This is not a drop-in replacement for bxff’s unscoped npm package. Both support standalone DeepSeek Search and Fetch; bxff also offers an optional model-mediated search backend and separate domain arguments. This extension uses query operators for domain filtering. See the [side-by-side comparison](docs/DEEPSEEK-EXTENSION-COMPARISON.md) for the tool contracts and trade-offs.
 
-## Getting started
+## Installation options
 
-Use Node.js 22.18 or newer and Pi 1.5.2 or newer in the 1.x series (the smoke suite pins 1.5.2). Install from GitHub using a tag listed on [Releases](https://github.com/cltec/pi-deepseek-search/releases), for example:
-
-```sh
-pi install git:github.com/cltec/pi-deepseek-search@v0.1.0
-```
-
-Once `@cltec/pi-deepseek-search@0.2.0` is published on npm, you can also install that version with:
+The smoke suite pins Pi 1.5.2. Once `@cltec/pi-deepseek-search@0.2.0` is published on npm, you can also install that version with:
 
 ```sh
 pi install npm:@cltec/pi-deepseek-search@0.2.0
@@ -26,13 +36,28 @@ pi install npm:@cltec/pi-deepseek-search@0.2.0
 
 The unscoped npm package `pi-deepseek-search` is a different extension. To try this checkout without installing it, run `pi -e ./src/index.ts`. Set `DEEPSEEK_API_KEY` in Pi's environment before using the online tools.
 
-Never commit the key. `/deepseek-search-status` checks registered tools without a model turn or provider request; it does not verify credentials or connectivity. Loading the extension makes no provider request and does not create configuration. It reads the key from the environment; it does not send it until a provider call. If `PI_OFFLINE` is present in the environment, even with an empty value, provider access is disabled. There is no endpoint override.
+The key is read from the environment and is not sent until a provider call. There is no endpoint override.
+
+## Tools and commands
 
 The model may call these tools when needed:
 
-- `deepseek_web_search`: discover ranked sources from a query (1–128 Unicode characters). It displays titles, URLs and compact previews, preferring summary, then snippet, then content. Search content may be absent; the default does not request it.
-- `deepseek_web_fetch`: retrieve one known HTTP(S) URL without credentials. It returns the provider's Markdown content, subject to the display budget. It does not extract a separate links section or offer image search.
-- `deepseek_web_read_full`: read a field from a session ref shown in search/fetch output. Search refs require the original **1-based** `resultIndex` and support `title`, `url`, or `content`; fetch refs support `title` or `content`, not `resultIndex`. Content defaults to `content`. Search content is the returned page content when available, otherwise the preview; it is not necessarily a full page. Fetch content is the exact Markdown returned by the API, not a separately reconstructed page.
+| Tool | Purpose |
+| --- | --- |
+| `deepseek_web_search` | Discover ranked sources from a query (1–128 Unicode characters), with titles, URLs and compact previews. |
+| `deepseek_web_fetch` | Retrieve a known HTTP(S) URL (with no embedded credentials) as Markdown, subject to the display budget. |
+| `deepseek_web_read_full` | Page through a field from a session ref, or export a fetched field to a file. |
+
+| Command | Availability | Purpose |
+| --- | --- | --- |
+| `/deepseek-search-status` | Always | Check tool registration without a model turn or provider request. |
+| `/deepseek-search QUERY`, `/deepseek-fetch URL`, `/deepseek-read-full JSON` | Developer mode | Invoke the corresponding operation directly. |
+
+### Tool and retrieval details
+
+Search previews prefer summary, then snippet, then content. Search content may be absent; the default does not request it. Fetch does not extract a separate links section or offer image search.
+
+Read-full search refs require the original **1-based** `resultIndex` and support `title`, `url`, or `content`; fetch refs support `title` or `content`, not `resultIndex`. The section defaults to `content`. Search content is the returned page content when available, otherwise the preview; it is not necessarily a full page. Fetch content is the exact Markdown returned by the API, not a separately reconstructed page.
 
 Inline reads default to 8,000 Unicode code points (`maxChars` up to 50,000, excluding the continuation note). Pass `nextOffset` back unchanged; offsets count UTF-16 units. For fetch refs only, `mode: "file"` exports the entire field. Omit `path` for a private temporary file cleaned up at session shutdown. Explicit paths persist, require an existing parent, and resolve relative to Pi's working directory (an optional `@` prefix is accepted). Model-initiated explicit exports require confirmation and are unavailable without a UI. Existing files are replaced only with `overwrite: true`; replacement installs a new private file, not the old file's metadata.
 
@@ -70,6 +95,14 @@ These are direct client API calls, not DeepSeek server-side model tools. DeepSee
 ## Migrating from `pi-ollama-web-search`
 
 Disable the old extension if you want only DeepSeek tools. Update prompts and scripts to use the `deepseek_web_*` names, and set `DEEPSEEK_API_KEY`; the Ollama key and profile file are not read. Create the DeepSeek profile file above if you need custom budgets. Old refs do not transfer. Config files are not generated automatically, replay is off unless you enable it, and fetch exposes Markdown links only as part of the page text.
+
+## Troubleshooting
+
+- **Search or fetch fails:** Check that `DEEPSEEK_API_KEY` is set in Pi's environment and restart Pi after changing it. HTTP errors can also indicate balance, rate limits, or unavailable content.
+- **Provider access is disabled:** Remove `PI_OFFLINE` from Pi's environment only when online requests are intended; even an empty value disables access.
+- **Status command is missing:** Check that the extension loaded without a warning and is enabled in the current scope.
+
+See [Troubleshooting](docs/TROUBLESHOOTING.md) for more symptoms and fixes.
 
 ## Development
 

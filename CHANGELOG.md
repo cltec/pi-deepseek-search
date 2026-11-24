@@ -2,6 +2,10 @@
 
 Notable changes to Pi DeepSeek Search are recorded here.
 
+## Unreleased
+
+- Improve README onboarding, tool and command navigation, troubleshooting, and CI and license badges.
+
 ## [0.2.0]
 
 - Prepare the first npm distribution as `@cltec/pi-deepseek-search`. The unscoped npm package is a different extension. GitHub installation remains supported, and tool behavior is unchanged.
